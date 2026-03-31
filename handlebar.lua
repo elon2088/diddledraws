@@ -22,8 +22,8 @@ function PlayerHandler.init(ctx)
     end
 
     for _, p in ipairs(Players:GetPlayers()) do Add(p) end
-    Players.PlayerAdded:Connect(Add)
-    Players.PlayerRemoving:Connect(Remove)
+    local addedConn   = Players.PlayerAdded:Connect(Add)
+    local removedConn = Players.PlayerRemoving:Connect(Remove)
 
     local renderConn = RunService.RenderStepped:Connect(function()
         for player, box in pairs(boxes) do
@@ -43,13 +43,15 @@ function PlayerHandler.init(ctx)
         end
     end)
 
-    script.Disabled:Connect(function()
+    return function()
         renderConn:Disconnect()
+        addedConn:Disconnect()
+        removedConn:Disconnect()
         for player, box in pairs(boxes) do
             box:Destroy()
             boxes[player] = nil
         end
-    end)
+    end
 end
 
 return PlayerHandler
