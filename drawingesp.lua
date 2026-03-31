@@ -116,7 +116,7 @@ local PlayerHandler = loadstring(game:HttpGet(
     "https://raw.githubusercontent.com/elon2088/new/refs/heads/main/ph.lua"
 ))()
 
-PlayerHandler.init({
+local Destroy = PlayerHandler.init({
     LocalPlayer    = LocalPlayer,
     Players        = Players,
     RunService     = RunService,
