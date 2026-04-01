@@ -41,7 +41,7 @@ local function startRender()
                 local pos, size = projectCorners(f.corners)
                 if pos and size then
                     f.box:Update(pos, size)
-                    f.box:SetAlpha(t)
+                    f.box:SetAlpha(1 - t)
                 else
                     f.box:Hide()
                 end
