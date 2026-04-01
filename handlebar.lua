@@ -8,8 +8,8 @@ function PlayerHandler.init(ctx)
     local GetBoundingBox = ctx.GetBoundingBox
     local DrawFade       = ctx.DrawFade
 
-    local boxes      = {}
-    local localRoot  = nil
+    local boxes     = {}
+    local localRoot = nil
 
     local OFFSETS = {
         Vector3.new( 1,  1,  1), Vector3.new(-1,  1,  1),
@@ -67,8 +67,8 @@ function PlayerHandler.init(ctx)
                 local char = player.Character
                 if not char then box:Hide() return end
 
-                local hum  = char:FindFirstChildOfClass("Humanoid")
-                local root = char:FindFirstChild("HumanoidRootPart")
+                local hum    = char:FindFirstChildOfClass("Humanoid")
+                local root   = char:FindFirstChild("HumanoidRootPart")
                 local isDead = not hum or hum.Health <= 0
 
                 if not isDead then
