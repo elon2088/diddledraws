@@ -7,6 +7,13 @@ local FadeDuration = 2.5
 local fades        = {}
 local renderConn   = nil
 
+local OFFSETS = {
+    Vector3.new( 1,  1,  1), Vector3.new(-1,  1,  1),
+    Vector3.new( 1, -1,  1), Vector3.new(-1, -1,  1),
+    Vector3.new( 1,  1, -1), Vector3.new(-1,  1, -1),
+    Vector3.new( 1, -1, -1), Vector3.new(-1, -1, -1),
+}
+
 local function projectCorners(corners)
     local minX, minY =  math.huge,  math.huge
     local maxX, maxY = -math.huge, -math.huge
