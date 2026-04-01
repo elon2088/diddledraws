@@ -51,8 +51,12 @@ function Box:Update(pos, size)
 end
 
 function Box:SetAlpha(t)
+    local visible         = t < 1
+    self._outer.Visible   = visible
     self._outer.Transparency  = t
+    self._border.Visible  = visible
     self._border.Transparency = t
+    self._inner.Visible   = visible
     self._inner.Transparency  = t
 end
 
