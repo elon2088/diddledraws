@@ -11,7 +11,7 @@ local CFG = {
 }
 
 local DrawFade = loadstring(game:HttpGet(
-    "https://raw.githubusercontent.com/elon2088/diddledraws/refs/heads/main/drawfade.lua"
+    "https://raw.githubusercontent.com/elon2088/diddledraws/refs/heads/main/faddigleadefromthestrooging.lua"
 ))()
 
 local Box = {}
