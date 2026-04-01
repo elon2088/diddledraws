@@ -82,7 +82,6 @@ function PlayerHandler.init(ctx)
                     local pos, size = GetBoundingBox(char)
                     if pos then
                         box:Update(pos, size)
-                        box:SetAlpha(0)
                     else
                         box:Hide()
                     end
