@@ -10,9 +10,6 @@ local CFG = {
     OutlineThick = 1,
 }
 
--------------------------------------------------
--- boxxxxx
--------------------------------------------------
 local Box = {}
 Box.__index = Box
 
@@ -56,6 +53,13 @@ function Box:Update(pos, size)
     self._inner.Visible   = true
 end
 
+function Box:SetTransparency(t)
+    local a = math.clamp(t, 0, 1)
+    self._outer.Transparency  = a
+    self._border.Transparency = a
+    self._inner.Transparency  = a
+end
+
 function Box:Hide()
     self._outer.Visible  = false
     self._border.Visible = false
@@ -68,9 +72,6 @@ function Box:Destroy()
     self._inner:Remove()
 end
 
--------------------------------------------------
--- BOUNDING BOX
--------------------------------------------------
 local OFFSETS = {
     Vector3.new( 1,  1,  1), Vector3.new(-1,  1,  1),
     Vector3.new( 1, -1,  1), Vector3.new(-1, -1,  1),
@@ -109,9 +110,6 @@ local function GetBoundingBox(character)
     return Vector2.new(minX, minY), Vector2.new(maxX - minX, maxY - minY)
 end
 
--------------------------------------------------
--- LOAD PLAYER HANDLER
--------------------------------------------------
 local PlayerHandler = loadstring(game:HttpGet(
     "https://raw.githubusercontent.com/elon2088/diddledraws/refs/heads/main/handlebar.lua"
 ))()
