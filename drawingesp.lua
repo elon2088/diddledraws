@@ -10,54 +10,50 @@ local CFG = {
     OutlineThick = 1,
 }
 
+local DrawFade = loadstring(game:HttpGet(
+    "https://raw.githubusercontent.com/elon2088/diddledraws/refs/heads/main/drawfade.lua"
+))()
+
 local Box = {}
 Box.__index = Box
 
 function Box.new()
     local self = setmetatable({}, Box)
-
     self._outer            = Drawing.new("Square")
     self._outer.Visible    = false
     self._outer.Filled     = false
     self._outer.Color      = CFG.OutlineColor
     self._outer.Thickness  = CFG.OutlineThick
-
     self._border           = Drawing.new("Square")
     self._border.Visible   = false
     self._border.Filled    = false
     self._border.Color     = CFG.BorderColor
     self._border.Thickness = CFG.BorderThick
-
     self._inner            = Drawing.new("Square")
     self._inner.Visible    = false
     self._inner.Filled     = false
     self._inner.Color      = CFG.OutlineColor
     self._inner.Thickness  = CFG.OutlineThick
-
     return self
 end
 
 function Box:Update(pos, size)
     local x, y, w, h = pos.X, pos.Y, size.X, size.Y
-
     self._outer.Position  = Vector2.new(x - 1, y - 1)
     self._outer.Size      = Vector2.new(w + 2,  h + 2)
     self._outer.Visible   = true
-
     self._border.Position = Vector2.new(x, y)
     self._border.Size     = Vector2.new(w, h)
     self._border.Visible  = true
-
     self._inner.Position  = Vector2.new(x + 1, y + 1)
     self._inner.Size      = Vector2.new(w - 2, h - 2)
     self._inner.Visible   = true
 end
 
-function Box:SetTransparency(t)
-    local a = math.clamp(t, 0, 1)
-    self._outer.Transparency  = a
-    self._border.Transparency = a
-    self._inner.Transparency  = a
+function Box:SetAlpha(t)
+    self._outer.Transparency  = t
+    self._border.Transparency = t
+    self._inner.Transparency  = t
 end
 
 function Box:Hide()
@@ -83,14 +79,12 @@ local function GetBoundingBox(character)
     local minX, minY =  math.huge,  math.huge
     local maxX, maxY = -math.huge, -math.huge
     local valid      = false
-
     for _, part in ipairs(character:GetChildren()) do
         if part:IsA("BasePart") and part.Name ~= "HumanoidRootPart" then
             local cf = part.CFrame
             local hX = part.Size.X * 0.5
             local hY = part.Size.Y * 0.5
             local hZ = part.Size.Z * 0.5
-
             for _, o in ipairs(OFFSETS) do
                 local screen, vis = Camera:WorldToViewportPoint(
                     cf * Vector3.new(o.X * hX, o.Y * hY, o.Z * hZ)
@@ -105,7 +99,6 @@ local function GetBoundingBox(character)
             end
         end
     end
-
     if not valid then return nil end
     return Vector2.new(minX, minY), Vector2.new(maxX - minX, maxY - minY)
 end
@@ -120,4 +113,5 @@ local Destroy = PlayerHandler.init({
     RunService     = RunService,
     Box            = Box,
     GetBoundingBox = GetBoundingBox,
+    DrawFade       = DrawFade,
 })
