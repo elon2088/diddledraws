@@ -50,6 +50,7 @@ function PlayerHandler.init(ctx)
 
         local box            = Box.new()
         local lastCorners    = {}
+        local lastName       = ""
         local wasDead        = false
         local fadedThisDeath = false
 
@@ -74,6 +75,7 @@ function PlayerHandler.init(ctx)
                 if not isDead then
                     wasDead        = false
                     fadedThisDeath = false
+                    lastName       = player.DisplayName
 
                     if root then
                         lastCorners = getWorldCorners(char)
@@ -90,6 +92,7 @@ function PlayerHandler.init(ctx)
                         wasDead        = true
                         fadedThisDeath = true
                         local fadeBox  = Box.new()
+                        fadeBox:SetName(lastName)
                         DrawFade.trigger(fadeBox, lastCorners)
                     end
                     box:Hide()
