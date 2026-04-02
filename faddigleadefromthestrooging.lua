@@ -40,7 +40,7 @@ local function startRender()
             else
                 local pos, size = projectCorners(f.corners)
                 if pos and size then
-                    f.box:Update(pos, size)
+                    f.box:Update(pos, size, f.name)
                     f.box:SetAlpha(1 - t)
                 else
                     f.box:Hide()
@@ -55,11 +55,12 @@ local function startRender()
     end)
 end
 
-function DrawFade.trigger(box, corners)
+function DrawFade.trigger(box, corners, name)
     box:SetAlpha(0)
     table.insert(fades, {
         box     = box,
         corners = corners,
+        name    = name,
         elapsed = 0,
     })
     startRender()
