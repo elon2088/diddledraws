@@ -1,6 +1,5 @@
 local Players     = game:GetService("Players")
 local RunService  = game:GetService("RunService")
-local HttpService = game:GetService("HttpService")
 local Camera      = workspace.CurrentCamera
 local LocalPlayer = Players.LocalPlayer
 
@@ -12,36 +11,6 @@ local CFG = {
     NameColor    = Color3.fromRGB(255, 255, 255),
     NameSize     = 13,
 }
-
-local function loadCustomFont(url, name)
-    local ttfPath  = name .. ".ttf"
-    local fontPath = name .. ".font"
-    local data     = game:HttpGet(url)
-    writefile(ttfPath, data)
-    local fontJson = HttpService:JSONEncode({
-        name  = name,
-        faces = {{
-            name    = "Regular",
-            weight  = 400,
-            style   = "normal",
-            assetId = getcustomasset(ttfPath)
-        }}
-    })
-    writefile(fontPath, fontJson)
-    return Font.new(getcustomasset(fontPath), Enum.FontWeight.Regular, Enum.FontStyle.Normal)
-end
-
-local PixelFont = loadCustomFont(
-    "https://github.com/britzl/gbrausers/blob/master/assets/font/smallest_pixel-7.ttf?raw=true",
-    "smallest_pixel"
-)
-
-local gui              = Instance.new("ScreenGui")
-gui.Name               = "DrawESPNames"
-gui.ResetOnSpawn       = false
-gui.ZIndexBehavior     = Enum.ZIndexBehavior.Sibling
-gui.IgnoreGuiInset     = true
-gui.Parent             = gethui and gethui() or game:GetService("CoreGui")
 
 local DrawFade = loadstring(game:HttpGet(
     "https://raw.githubusercontent.com/elon2088/diddledraws/refs/heads/main/faddigleadefromthestrooging.lua"
@@ -71,26 +40,19 @@ function Box.new()
     self._inner.Color      = CFG.OutlineColor
     self._inner.Thickness  = CFG.OutlineThick
 
-    local label                      = Instance.new("TextLabel")
-    label.BackgroundTransparency     = 1
-    label.BorderSizePixel            = 0
-    label.AnchorPoint                = Vector2.new(0.5, 1)
-    label.Size                       = UDim2.new(0, 200, 0, CFG.NameSize + 4)
-    label.FontFace                   = PixelFont
-    label.TextSize                   = CFG.NameSize
-    label.TextColor3                 = CFG.NameColor
-    label.TextStrokeTransparency     = 0
-    label.TextStrokeColor3           = Color3.fromRGB(0, 0, 0)
-    label.TextXAlignment             = Enum.TextXAlignment.Center
-    label.Text                       = ""
-    label.Visible                    = false
-    label.Parent                     = gui
-    self._label                      = label
+    self._name             = Drawing.new("Text")
+    self._name.Visible     = false
+    self._name.Color       = CFG.NameColor
+    self._name.Size        = CFG.NameSize
+    self._name.Center      = true
+    self._name.Outline     = true
+    self._name.OutlineColor = CFG.OutlineColor
+    self._name.Text        = ""
 
     return self
 end
 
-function Box:Update(pos, size, name)
+function Box:Update(pos, size, displayName)
     local x, y, w, h = pos.X, pos.Y, size.X, size.Y
 
     self._outer.Position  = Vector2.new(x - 1, y - 1)
@@ -105,9 +67,11 @@ function Box:Update(pos, size, name)
     self._inner.Size      = Vector2.new(w - 2, h - 2)
     self._inner.Visible   = true
 
-    self._label.Position  = UDim2.fromOffset(x + w * 0.5, y - 2)
-    self._label.Text      = name or ""
-    self._label.Visible   = true
+    if displayName then
+        self._name.Text     = displayName
+        self._name.Position = Vector2.new(x + w * 0.5, y - CFG.NameSize - 2)
+        self._name.Visible  = true
+    end
 end
 
 function Box:SetAlpha(t)
@@ -118,23 +82,22 @@ function Box:SetAlpha(t)
     self._border.Transparency = t
     self._inner.Visible       = visible
     self._inner.Transparency  = t
-    self._label.Visible                  = visible
-    self._label.TextTransparency         = t
-    self._label.TextStrokeTransparency   = t
+    self._name.Visible        = visible
+    self._name.Transparency   = t
 end
 
 function Box:Hide()
     self._outer.Visible  = false
     self._border.Visible = false
     self._inner.Visible  = false
-    self._label.Visible  = false
+    self._name.Visible   = false
 end
 
 function Box:Destroy()
     self._outer:Remove()
     self._border:Remove()
     self._inner:Remove()
-    self._label:Destroy()
+    self._name:Remove()
 end
 
 local OFFSETS = {
