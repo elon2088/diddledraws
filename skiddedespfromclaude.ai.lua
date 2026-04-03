@@ -12,6 +12,7 @@ local CFG = {
     NameColor    = Color3.fromRGB(255, 255, 255),
     NameSize     = 13,
     DistLerp     = 0.1,
+    BoxExpand    = 2
 }
 
 local function loadCustomFont(url, name)
@@ -78,10 +79,10 @@ function Box.new()
     self._border.Thickness = CFG.BorderThick
 
     self._inner            = Drawing.new("Square")
-    self._inner.Visible    = false
+    self._inner.Visible   = false
     self._inner.Filled     = false
     self._inner.Color      = CFG.OutlineColor
-    self._inner.Thickness  = CFG.OutlineThick
+    self._inner.Thickness = CFG.OutlineThick
 
     local label                  = Instance.new("TextLabel")
     label.BackgroundTransparency = 1
@@ -119,7 +120,7 @@ function Box.new()
 end
 
 function Box:Update(pos, size, displayName, dist, character)
-    local x, y, w, h = pos.X, pos.Y, size.X, size.Y
+    local x, y, w, h = pos.X - CFG.BoxExpand, pos.Y - CFG.BoxExpand, size.X + (CFG.BoxExpand * 2), size.Y + (CFG.BoxExpand * 2)
 
     self._outer.Position  = Vector2.new(x - 1, y - 1)
     self._outer.Size      = Vector2.new(w + 2,  h + 2)
