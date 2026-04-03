@@ -41,7 +41,6 @@ local function startRender()
             else
                 local pos, size = projectCorners(f.corners)
                 if pos and size then
-                    -- Pass the stored health/character context to maintain the bar during fade
                     f.box:Update(pos, size, f.displayName, f.lastDist, f.characterStub)
                     f.box:SetAlpha(1 - progress)
                 else
@@ -58,7 +57,6 @@ local function startRender()
 end
 
 function DrawFade.trigger(box, corners, displayName, lastDist, character)
-    -- Capture a "stub" of the character to keep health bar data consistent during fade
     local healthData = nil
     if character then
         local hum = character:FindFirstChildOfClass("Humanoid")
@@ -74,7 +72,7 @@ function DrawFade.trigger(box, corners, displayName, lastDist, character)
         corners       = corners,
         displayName   = displayName,
         lastDist      = lastDist,
-        characterStub = healthData, -- Used to render the bar at its last known state
+        characterStub = healthData,
         elapsed       = 0,
     })
     startRender()
