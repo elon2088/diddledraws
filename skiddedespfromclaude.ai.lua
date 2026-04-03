@@ -5,14 +5,13 @@ local Camera      = workspace.CurrentCamera
 local LocalPlayer = Players.LocalPlayer
 
 local CFG = {
-    BorderColor  = Color3.fromRGB(173, 216, 230),
+    BorderColor  = Color3.fromRGB(255, 255, 255),
     OutlineColor = Color3.fromRGB(0, 0, 0),
-    BorderThick  = 1,
+    BorderThick  = 2,
     OutlineThick = 1,
     NameColor    = Color3.fromRGB(255, 255, 255),
     NameSize     = 13,
     DistLerp     = 0.1,
-    BoxExpand    = 2
 }
 
 local function loadCustomFont(url, name)
@@ -70,7 +69,7 @@ function Box.new()
     self._outer.Visible    = false
     self._outer.Filled     = false
     self._outer.Color      = CFG.OutlineColor
-    self._outer.Thickness  = CFG.OutlineThick
+    self._outer.Thickness  = CFG.OutlineThick + CFG.BorderThick
 
     self._border           = Drawing.new("Square")
     self._border.Visible   = false
@@ -80,8 +79,8 @@ function Box.new()
 
     self._inner            = Drawing.new("Square")
     self._inner.Visible   = false
-    self._inner.Filled     = false
-    self._inner.Color      = CFG.OutlineColor
+    self._inner.Filled    = false
+    self._inner.Color     = CFG.OutlineColor
     self._inner.Thickness = CFG.OutlineThick
 
     local label                  = Instance.new("TextLabel")
@@ -120,7 +119,7 @@ function Box.new()
 end
 
 function Box:Update(pos, size, displayName, dist, character)
-    local x, y, w, h = pos.X - CFG.BoxExpand, pos.Y - CFG.BoxExpand, size.X + (CFG.BoxExpand * 2), size.Y + (CFG.BoxExpand * 2)
+    local x, y, w, h = pos.X, pos.Y, size.X, size.Y
 
     self._outer.Position  = Vector2.new(x - 1, y - 1)
     self._outer.Size      = Vector2.new(w + 2,  h + 2)
@@ -149,12 +148,10 @@ function Box:Update(pos, size, displayName, dist, character)
         self._label.Visible  = true
     end
 
-    local tool = character and getEquippedTool(character)
-    if tool or not character then
-        self._toolLabel.Text     = "[" .. (tool or "none") .. "]"
-        self._toolLabel.Position = UDim2.fromOffset(x + w * 0.5, y + h + 1)
-        self._toolLabel.Visible  = true
-    end
+    local tool = getEquippedTool(character)
+    self._toolLabel.Text     = "[" .. (tool or "none") .. "]"
+    self._toolLabel.Position = UDim2.fromOffset(x + w * 0.5, y + h + 1)
+    self._toolLabel.Visible  = true
 end
 
 function Box:SetAlpha(t)
