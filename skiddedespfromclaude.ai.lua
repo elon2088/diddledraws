@@ -148,26 +148,32 @@ function Box:Update(pos, size, displayName, dist, character)
         self._label.Visible  = true
     end
 
-    local tool = getEquippedTool(character)
-    self._toolLabel.Text     = "[" .. (tool or "none") .. "]"
-    self._toolLabel.Position = UDim2.fromOffset(x + w * 0.5, y + h + 1)
-    self._toolLabel.Visible  = true
+    local tool = character and getEquippedTool(character)
+    if tool or not character then
+        self._toolLabel.Text     = "[" .. (tool or "none") .. "]"
+        self._toolLabel.Position = UDim2.fromOffset(x + w * 0.5, y + h + 1)
+        self._toolLabel.Visible  = true
+    end
 end
 
 function Box:SetAlpha(t)
-    local vis                          = t < 1
-    self._outer.Visible                = vis
-    self._outer.Transparency           = t
-    self._border.Visible               = vis
-    self._border.Transparency          = t
-    self._inner.Visible                = vis
-    self._inner.Transparency           = t
-    self._label.Visible                = vis
-    self._label.TextTransparency       = t
-    self._label.TextStrokeTransparency = t
-    self._toolLabel.Visible                = vis
-    self._toolLabel.TextTransparency       = t
-    self._toolLabel.TextStrokeTransparency = t
+    local alpha = math.clamp(t, 0, 1)
+    local vis = alpha > 0.01
+
+    self._outer.Visible = vis
+    self._outer.Transparency = alpha
+    self._border.Visible = vis
+    self._border.Transparency = alpha
+    self._inner.Visible = vis
+    self._inner.Transparency = alpha
+
+    local textInv = 1 - alpha
+    self._label.Visible = vis
+    self._label.TextTransparency = textInv
+    self._label.TextStrokeTransparency = textInv
+    self._toolLabel.Visible = vis
+    self._toolLabel.TextTransparency = textInv
+    self._toolLabel.TextStrokeTransparency = textInv
 end
 
 function Box:Hide()
