@@ -86,6 +86,7 @@ function PlayerHandler.init(ctx)
 
                     local pos, size = GetBoundingBox(char)
                     if pos then
+                        -- Explicitly passing 'char' here ensures the healthbar logic has the character reference needed
                         box:Update(pos, size, player.DisplayName, lastDist, char)
                     else
                         box:Hide()
