@@ -32,8 +32,9 @@ local function startRender()
         while i <= #fades do
             local f = fades[i]
             f.elapsed = f.elapsed + dt
-            local t   = math.clamp(f.elapsed / FadeDuration, 0, 1)
-            if t >= 1 then
+            local progress = math.clamp(f.elapsed / FadeDuration, 0, 1)
+            
+            if progress >= 1 then
                 f.box:Hide()
                 f.box:Destroy()
                 table.remove(fades, i)
@@ -41,7 +42,7 @@ local function startRender()
                 local pos, size = projectCorners(f.corners)
                 if pos and size then
                     f.box:Update(pos, size, f.displayName, f.lastDist, nil)
-                    f.box:SetAlpha(t)
+                    f.box:SetAlpha(1 - progress)
                 else
                     f.box:Hide()
                 end
