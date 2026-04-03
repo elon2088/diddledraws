@@ -1,5 +1,6 @@
 local Players     = game:GetService("Players")
 local RunService  = game:GetService("RunService")
+local HttpService = game:GetService("HttpService")
 local Camera      = workspace.CurrentCamera
 local LocalPlayer = Players.LocalPlayer
 
@@ -10,17 +11,59 @@ local CFG = {
     OutlineThick = 1,
     NameColor    = Color3.fromRGB(255, 255, 255),
     NameSize     = 13,
+    DistLerp     = 0.1,
 }
+
+local function loadCustomFont(url, name)
+    local ttfPath  = name .. ".ttf"
+    local fontPath = name .. ".font"
+    local data     = game:HttpGet(url)
+    writefile(ttfPath, data)
+    local fontJson = HttpService:JSONEncode({
+        name  = name,
+        faces = {{
+            name    = "Regular",
+            weight  = 400,
+            style   = "normal",
+            assetId = getcustomasset(ttfPath)
+        }}
+    })
+    writefile(fontPath, fontJson)
+    return Font.new(getcustomasset(fontPath), Enum.FontWeight.Regular, Enum.FontStyle.Normal)
+end
+
+local PixelFont = loadCustomFont(
+    "https://github.com/elon2088/diddledraws/raw/refs/heads/main/smallest_pixel-7.ttf",
+    "smallest_pixel"
+)
+
+local gui          = Instance.new("ScreenGui")
+gui.Name           = "namesp"
+gui.ResetOnSpawn   = false
+gui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+gui.IgnoreGuiInset = true
+gui.Parent         = gethui and gethui() or game:GetService("CoreGui")
 
 local DrawFade = loadstring(game:HttpGet(
     "https://raw.githubusercontent.com/elon2088/diddledraws/refs/heads/main/faddigleadefromthestrooging.lua"
 ))()
 
+local function getEquippedTool(character)
+    if not character then return nil end
+    for _, child in ipairs(character:GetChildren()) do
+        if child:IsA("Tool") then
+            return child.Name
+        end
+    end
+    return nil
+end
+
 local Box = {}
 Box.__index = Box
 
 function Box.new()
-    local self = setmetatable({}, Box)
+    local self       = setmetatable({}, Box)
+    self._smoothDist = nil
 
     self._outer            = Drawing.new("Square")
     self._outer.Visible    = false
@@ -40,19 +83,42 @@ function Box.new()
     self._inner.Color      = CFG.OutlineColor
     self._inner.Thickness  = CFG.OutlineThick
 
-    self._name             = Drawing.new("Text")
-    self._name.Visible     = false
-    self._name.Color       = CFG.NameColor
-    self._name.Size        = CFG.NameSize
-    self._name.Center      = true
-    self._name.Outline     = true
-    self._name.OutlineColor = CFG.OutlineColor
-    self._name.Text        = ""
+    local label                  = Instance.new("TextLabel")
+    label.BackgroundTransparency = 1
+    label.BorderSizePixel        = 0
+    label.AnchorPoint            = Vector2.new(0.5, 1)
+    label.Size                   = UDim2.new(0, 300, 0, CFG.NameSize + 6)
+    label.FontFace               = PixelFont
+    label.TextSize               = CFG.NameSize
+    label.TextColor3             = CFG.NameColor
+    label.TextStrokeTransparency = 0
+    label.TextStrokeColor3       = Color3.fromRGB(0, 0, 0)
+    label.TextXAlignment         = Enum.TextXAlignment.Center
+    label.Text                   = ""
+    label.Visible                = false
+    label.Parent                 = gui
+    self._label                  = label
+
+    local toolLabel                  = Instance.new("TextLabel")
+    toolLabel.BackgroundTransparency = 1
+    toolLabel.BorderSizePixel        = 0
+    toolLabel.AnchorPoint            = Vector2.new(0.5, 0)
+    toolLabel.Size                   = UDim2.new(0, 300, 0, CFG.NameSize + 6)
+    toolLabel.FontFace               = PixelFont
+    toolLabel.TextSize               = CFG.NameSize
+    toolLabel.TextColor3             = CFG.NameColor
+    toolLabel.TextStrokeTransparency = 0
+    toolLabel.TextStrokeColor3       = Color3.fromRGB(0, 0, 0)
+    toolLabel.TextXAlignment         = Enum.TextXAlignment.Center
+    toolLabel.Text                   = ""
+    toolLabel.Visible                = false
+    toolLabel.Parent                 = gui
+    self._toolLabel                  = toolLabel
 
     return self
 end
 
-function Box:Update(pos, size, displayName)
+function Box:Update(pos, size, displayName, dist, character)
     local x, y, w, h = pos.X, pos.Y, size.X, size.Y
 
     self._outer.Position  = Vector2.new(x - 1, y - 1)
@@ -68,36 +134,56 @@ function Box:Update(pos, size, displayName)
     self._inner.Visible   = true
 
     if displayName then
-        self._name.Text     = displayName
-        self._name.Position = Vector2.new(x + w * 0.5, y - CFG.NameSize - 2)
-        self._name.Visible  = true
+        if dist then
+            if not self._smoothDist then
+                self._smoothDist = dist
+            else
+                self._smoothDist = self._smoothDist + (dist - self._smoothDist) * CFG.DistLerp
+            end
+            self._label.Text = displayName .. " [" .. math.floor(self._smoothDist) .. "]"
+        else
+            self._label.Text = displayName
+        end
+        self._label.Position = UDim2.fromOffset(x + w * 0.5, y - 1)
+        self._label.Visible  = true
     end
+
+    local tool = getEquippedTool(character)
+    self._toolLabel.Text     = "[" .. (tool or "none") .. "]"
+    self._toolLabel.Position = UDim2.fromOffset(x + w * 0.5, y + h + 1)
+    self._toolLabel.Visible  = true
 end
 
 function Box:SetAlpha(t)
-    local visible             = t < 1
-    self._outer.Visible       = visible
-    self._outer.Transparency  = t
-    self._border.Visible      = visible
-    self._border.Transparency = t
-    self._inner.Visible       = visible
-    self._inner.Transparency  = t
-    self._name.Visible        = visible
-    self._name.Transparency   = t
+    local vis                          = t < 1
+    self._outer.Visible                = vis
+    self._outer.Transparency           = t
+    self._border.Visible               = vis
+    self._border.Transparency          = t
+    self._inner.Visible                = vis
+    self._inner.Transparency           = t
+    self._label.Visible                = vis
+    self._label.TextTransparency       = t
+    self._label.TextStrokeTransparency = t
+    self._toolLabel.Visible                = vis
+    self._toolLabel.TextTransparency       = t
+    self._toolLabel.TextStrokeTransparency = t
 end
 
 function Box:Hide()
-    self._outer.Visible  = false
-    self._border.Visible = false
-    self._inner.Visible  = false
-    self._name.Visible   = false
+    self._outer.Visible     = false
+    self._border.Visible    = false
+    self._inner.Visible     = false
+    self._label.Visible     = false
+    self._toolLabel.Visible = false
 end
 
 function Box:Destroy()
     self._outer:Remove()
     self._border:Remove()
     self._inner:Remove()
-    self._name:Remove()
+    self._label:Destroy()
+    self._toolLabel:Destroy()
 end
 
 local OFFSETS = {
