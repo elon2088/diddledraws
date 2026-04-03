@@ -41,7 +41,8 @@ local function startRender()
             else
                 local pos, size = projectCorners(f.corners)
                 if pos and size then
-                    f.box:Update(pos, size, f.displayName, f.lastDist, f.characterStub)
+                    -- Pass f.char so the health bar shows up in the fade
+                    f.box:Update(pos, size, f.displayName, f.lastDist, f.char)
                     f.box:SetAlpha(1 - progress)
                 else
                     f.box:Hide()
@@ -56,24 +57,14 @@ local function startRender()
     end)
 end
 
-function DrawFade.trigger(box, corners, displayName, lastDist, character)
-    local healthData = nil
-    if character then
-        local hum = character:FindFirstChildOfClass("Humanoid")
-        if hum then
-            healthData = {
-                FindFirstChildOfClass = function() return hum end
-            }
-        end
-    end
-
+function DrawFade.trigger(box, corners, displayName, lastDist, char)
     table.insert(fades, {
-        box           = box,
-        corners       = corners,
-        displayName   = displayName,
-        lastDist      = lastDist,
-        characterStub = healthData,
-        elapsed       = 0,
+        box         = box,
+        corners     = corners,
+        displayName = displayName,
+        lastDist    = lastDist,
+        char        = char,
+        elapsed     = 0,
     })
     startRender()
 end
