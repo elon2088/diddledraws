@@ -95,7 +95,8 @@ function PlayerHandler.init(ctx)
                         wasDead        = true
                         fadedThisDeath = true
                         local fadeBox  = Box.new()
-                        DrawFade.trigger(fadeBox, lastCorners, player.DisplayName, lastDist)
+                        -- MODIFIED: Added 'char' as the 5th argument to support health bar fading
+                        DrawFade.trigger(fadeBox, lastCorners, player.DisplayName, lastDist, char)
                     end
                     box:Hide()
                 end
