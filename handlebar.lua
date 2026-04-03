@@ -25,6 +25,7 @@ function PlayerHandler.init(ctx)
 
     local function getWorldCorners(character)
         local corners = {}
+        if not character then return corners end
         for _, part in ipairs(character:GetChildren()) do
             if part:IsA("BasePart") and part.Name ~= "HumanoidRootPart" then
                 local cf = part.CFrame
@@ -95,7 +96,6 @@ function PlayerHandler.init(ctx)
                         wasDead        = true
                         fadedThisDeath = true
                         local fadeBox  = Box.new()
-                        -- MODIFIED: Added 'char' as the 5th argument to support health bar fading
                         DrawFade.trigger(fadeBox, lastCorners, player.DisplayName, lastDist, char)
                     end
                     box:Hide()
