@@ -12,6 +12,13 @@ local CFG = {
     NameColor    = Color3.fromRGB(255, 255, 255),
     NameSize     = 13,
     DistLerp     = 0.1,
+
+    HealthBar = {
+        Width      = 1,
+        Outline    = 1,   
+        Gap        = 2,   
+        LerpSpeed  = 7,   
+    }
 }
 
 local function loadCustomFont(url, name)
@@ -64,6 +71,7 @@ Box.__index = Box
 function Box.new()
     local self       = setmetatable({}, Box)
     self._smoothDist = nil
+    self._smoothHealthPercentage = 1
 
     self._outer            = Drawing.new("Square")
     self._outer.Visible    = false
@@ -78,10 +86,21 @@ function Box.new()
     self._border.Thickness = CFG.BorderThick
 
     self._inner            = Drawing.new("Square")
-    self._inner.Visible   = false
-    self._inner.Filled    = false
-    self._inner.Color     = CFG.OutlineColor
+    self._inner.Visible    = false
+    self._inner.Filled     = false
+    self._inner.Color      = CFG.OutlineColor
     self._inner.Thickness = CFG.OutlineThick
+
+    self._healthOutline = Drawing.new("Square")
+    self._healthOutline.Visible   = false
+    self._healthOutline.Filled    = true
+    self._healthOutline.Color     = CFG.OutlineColor
+    self._healthOutline.Thickness = 0
+
+    self._healthBar = Drawing.new("Square")
+    self._healthBar.Visible   = false
+    self._healthBar.Filled    = true
+    self._healthBar.Thickness = 0
 
     local label                  = Instance.new("TextLabel")
     label.BackgroundTransparency = 1
@@ -94,7 +113,6 @@ function Box.new()
     label.TextStrokeTransparency = 0
     label.TextStrokeColor3       = Color3.fromRGB(0, 0, 0)
     label.TextXAlignment         = Enum.TextXAlignment.Center
-    label.Text                   = ""
     label.Visible                = false
     label.Parent                 = gui
     self._label                  = label
@@ -110,7 +128,6 @@ function Box.new()
     toolLabel.TextStrokeTransparency = 0
     toolLabel.TextStrokeColor3       = Color3.fromRGB(0, 0, 0)
     toolLabel.TextXAlignment         = Enum.TextXAlignment.Center
-    toolLabel.Text                   = ""
     toolLabel.Visible                = false
     toolLabel.Parent                 = gui
     self._toolLabel                  = toolLabel
@@ -152,6 +169,44 @@ function Box:Update(pos, size, displayName, dist, character)
     self._toolLabel.Text     = "[" .. (tool or "none") .. "]"
     self._toolLabel.Position = UDim2.fromOffset(x + w * 0.5, y + h + 1)
     self._toolLabel.Visible  = true
+    
+    if character then
+        local humanoid = character:FindFirstChildOfClass("Humanoid")
+        if humanoid then
+            local targetPercentage = humanoid.Health / humanoid.MaxHealth
+            
+            self._smoothHealthPercentage = self._smoothHealthPercentage + (targetPercentage - self._smoothHealthPercentage) * 0.15
+
+            local hBarCfg = CFG.HealthBar
+            local outlinePos = Vector2.new(x - hBarCfg.Width - hBarCfg.Gap - hBarCfg.Outline, y)
+            local outlineSize = Vector2.new(hBarCfg.Width + (2 * hBarCfg.Outline), h)
+            
+            self._healthOutline.Position = outlinePos
+            self._healthOutline.Size = outlineSize
+            self._healthOutline.Visible = true
+
+            local barPercentage = math.clamp(self._smoothHealthPercentage, 0, 1)
+            local barHeight = h * barPercentage
+            
+            self._healthBar.Position = Vector2.new(outlinePos.X + hBarCfg.Outline, outlinePos.Y + (h - barHeight))
+            self._healthBar.Size = Vector2.new(hBarCfg.Width, barHeight)
+            
+            if barPercentage > 0.75 then
+                 self._healthBar.Color = Color3.fromRGB(0, 100, 0):Lerp(Color3.fromRGB(0, 160, 0), (barPercentage - 0.75) * 4)
+            elseif barPercentage > 0.5 then
+                 self._healthBar.Color = Color3.fromRGB(180, 180, 0):Lerp(Color3.fromRGB(0, 100, 0), (barPercentage - 0.5) * 4)
+            elseif barPercentage > 0.25 then
+                 self._healthBar.Color = Color3.fromRGB(180, 100, 0):Lerp(Color3.fromRGB(180, 180, 0), (barPercentage - 0.25) * 4)
+            else
+                 self._healthBar.Color = Color3.fromRGB(120, 0, 0):Lerp(Color3.fromRGB(180, 100, 0), barPercentage * 4)
+            end
+            
+            self._healthBar.Visible = true
+        end
+    else
+        self._healthBar.Visible = false
+        self._healthOutline.Visible = false
+    end
 end
 
 function Box:SetAlpha(t)
@@ -164,6 +219,11 @@ function Box:SetAlpha(t)
     self._border.Transparency = alpha
     self._inner.Visible = vis
     self._inner.Transparency = alpha
+    
+    self._healthBar.Visible = vis
+    self._healthBar.Transparency = alpha
+    self._healthOutline.Visible = vis
+    self._healthOutline.Transparency = alpha
 
     local textInv = 1 - alpha
     self._label.Visible = vis
@@ -180,6 +240,8 @@ function Box:Hide()
     self._inner.Visible     = false
     self._label.Visible     = false
     self._toolLabel.Visible = false
+    self._healthBar.Visible = false
+    self._healthOutline.Visible = false
 end
 
 function Box:Destroy()
@@ -188,6 +250,8 @@ function Box:Destroy()
     self._inner:Remove()
     self._label:Destroy()
     self._toolLabel:Destroy()
+    self._healthBar:Remove()
+    self._healthOutline:Remove()
 end
 
 local OFFSETS = {
@@ -198,6 +262,7 @@ local OFFSETS = {
 }
 
 local function GetBoundingBox(character)
+    if not character then return nil end
     local minX, minY =  math.huge,  math.huge
     local maxX, maxY = -math.huge, -math.huge
     local valid      = false
