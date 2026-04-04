@@ -12,6 +12,9 @@ local CFG = {
     NameColor    = Color3.fromRGB(255, 255, 255),
     NameSize     = 13,
     DistLerp     = 0.1,
+    HpLerp       = 0.07,
+    HpBarWidth   = 2,
+    HpBarGap     = 2,
 }
 
 local function loadCustomFont(url, name)
@@ -58,15 +61,35 @@ local function getEquippedTool(character)
     return nil
 end
 
-local function GetHealthColor(hpPercent)
-    if hpPercent >= 0.75 then
-        return Color3.fromRGB(255, 255, 0):Lerp(Color3.fromRGB(0, 150, 0), (hpPercent - 0.75) / 0.25)
-    elseif hpPercent >= 0.5 then
-        return Color3.fromRGB(255, 128, 0):Lerp(Color3.fromRGB(255, 255, 0), (hpPercent - 0.5) / 0.25)
-    elseif hpPercent >= 0.25 then
-        return Color3.fromRGB(255, 0, 0):Lerp(Color3.fromRGB(255, 128, 0), (hpPercent - 0.25) / 0.25)
+local function hpColor(pct)
+    if pct > 0.75 then
+        local t = (pct - 0.75) / 0.25
+        return Color3.fromRGB(
+            math.floor(20  + (50  - 20)  * (1 - t)),
+            math.floor(110 + (140 - 110) * t),
+            20
+        )
+    elseif pct > 0.5 then
+        local t = (pct - 0.5) / 0.25
+        return Color3.fromRGB(
+            math.floor(160 + (20  - 160) * t),
+            math.floor(110 + (140 - 110) * t),
+            15
+        )
+    elseif pct > 0.25 then
+        local t = (pct - 0.25) / 0.25
+        return Color3.fromRGB(
+            math.floor(170 + (160 - 170) * (1 - t)),
+            math.floor(60  + (110 - 60)  * t),
+            10
+        )
     else
-        return Color3.fromRGB(150, 0, 0):Lerp(Color3.fromRGB(255, 0, 0), hpPercent / 0.25)
+        local t = pct / 0.25
+        return Color3.fromRGB(
+            math.floor(120 + (170 - 120) * t),
+            math.floor(15  + (60  - 15)  * t),
+            10
+        )
     end
 end
 
@@ -76,6 +99,7 @@ Box.__index = Box
 function Box.new()
     local self       = setmetatable({}, Box)
     self._smoothDist = nil
+    self._smoothHp   = nil
 
     self._outer            = Drawing.new("Square")
     self._outer.Visible    = false
@@ -89,26 +113,23 @@ function Box.new()
     self._border.Color     = CFG.BorderColor
     self._border.Thickness = CFG.BorderThick
 
-    self._inner            = Drawing.new("Square")
+    self._inner           = Drawing.new("Square")
     self._inner.Visible   = false
     self._inner.Filled    = false
     self._inner.Color     = CFG.OutlineColor
     self._inner.Thickness = CFG.OutlineThick
 
-    self._healthOutline            = Drawing.new("Square")
-    self._healthOutline.Visible    = false
-    self._healthOutline.Filled     = false
-    self._healthOutline.Color      = CFG.OutlineColor
-    self._healthOutline.Thickness  = CFG.OutlineThick + CFG.BorderThick
+    self._hpBg          = Drawing.new("Square")
+    self._hpBg.Visible  = false
+    self._hpBg.Filled   = true
+    self._hpBg.Color    = Color3.fromRGB(0, 0, 0)
+    self._hpBg.Thickness = 1
 
-    self._healthBg                 = Drawing.new("Square")
-    self._healthBg.Visible         = false
-    self._healthBg.Filled          = true
-    self._healthBg.Color           = Color3.fromRGB(0, 0, 0)
-
-    self._health                   = Drawing.new("Square")
-    self._health.Visible           = false
-    self._health.Filled            = true
+    self._hpFill         = Drawing.new("Square")
+    self._hpFill.Visible = false
+    self._hpFill.Filled  = true
+    self._hpFill.Color   = Color3.fromRGB(30, 140, 20)
+    self._hpFill.Thickness = 1
 
     local label                  = Instance.new("TextLabel")
     label.BackgroundTransparency = 1
@@ -160,36 +181,6 @@ function Box:Update(pos, size, displayName, dist, character, health, maxHealth)
     self._inner.Size      = Vector2.new(w - 2, h - 2)
     self._inner.Visible   = true
 
-    if health and maxHealth then
-        if not self._smoothHealth then
-            self._smoothHealth = health
-        else
-            self._smoothHealth = self._smoothHealth + (health - self._smoothHealth) * 0.15
-        end
-
-        local hpPercent = math.clamp(self._smoothHealth / maxHealth, 0, 1)
-        local barWidth  = 2
-        local padding   = 4
-
-        self._healthOutline.Position = Vector2.new(x - padding - barWidth - 1, y - 1)
-        self._healthOutline.Size     = Vector2.new(barWidth + 2, h + 2)
-        self._healthOutline.Visible  = true
-
-        self._healthBg.Position      = Vector2.new(x - padding - barWidth, y)
-        self._healthBg.Size          = Vector2.new(barWidth, h)
-        self._healthBg.Visible       = true
-
-        local hpHeight               = math.floor(h * hpPercent)
-        self._health.Position        = Vector2.new(x - padding - barWidth, y + h - hpHeight)
-        self._health.Size            = Vector2.new(barWidth, hpHeight)
-        self._health.Color           = GetHealthColor(hpPercent)
-        self._health.Visible         = true
-    else
-        self._healthOutline.Visible = false
-        self._healthBg.Visible      = false
-        self._health.Visible        = false
-    end
-
     if displayName then
         if dist then
             if not self._smoothDist then
@@ -209,32 +200,55 @@ function Box:Update(pos, size, displayName, dist, character, health, maxHealth)
     self._toolLabel.Text     = "[" .. (tool or "none") .. "]"
     self._toolLabel.Position = UDim2.fromOffset(x + w * 0.5, y + h + 1)
     self._toolLabel.Visible  = true
+
+    if health and maxHealth and maxHealth > 0 then
+        local rawPct = math.clamp(health / maxHealth, 0, 1)
+        if not self._smoothHp then
+            self._smoothHp = rawPct
+        else
+            self._smoothHp = self._smoothHp + (rawPct - self._smoothHp) * CFG.HpLerp
+        end
+
+        local bw   = CFG.HpBarWidth
+        local bx   = x - CFG.HpBarGap - bw - 1
+        local by   = y - 1
+        local bh   = h + 2
+        local fillH = math.max(1, bh * self._smoothHp)
+        local fy    = by + bh - fillH
+
+        self._hpBg.Position  = Vector2.new(bx - 1, by - 1)
+        self._hpBg.Size      = Vector2.new(bw + 2,  bh + 2)
+        self._hpBg.Visible   = true
+
+        self._hpFill.Position = Vector2.new(bx, fy)
+        self._hpFill.Size     = Vector2.new(bw, fillH)
+        self._hpFill.Color    = hpColor(self._smoothHp)
+        self._hpFill.Visible  = true
+    end
 end
 
 function Box:SetAlpha(t)
     local alpha = math.clamp(t, 0, 1)
-    local vis = alpha > 0.01
+    local vis   = alpha > 0.01
 
-    self._outer.Visible = vis
-    self._outer.Transparency = alpha
-    self._border.Visible = vis
+    self._outer.Visible       = vis
+    self._outer.Transparency  = alpha
+    self._border.Visible      = vis
     self._border.Transparency = alpha
-    self._inner.Visible = vis
-    self._inner.Transparency = alpha
+    self._inner.Visible       = vis
+    self._inner.Transparency  = alpha
 
-    self._healthOutline.Visible = vis and self._healthOutline.Visible
-    self._healthOutline.Transparency = alpha
-    self._healthBg.Visible = vis and self._healthBg.Visible
-    self._healthBg.Transparency = alpha
-    self._health.Visible = vis and self._health.Visible
-    self._health.Transparency = alpha
+    self._hpBg.Visible          = vis
+    self._hpBg.Transparency     = alpha
+    self._hpFill.Visible        = vis
+    self._hpFill.Transparency   = alpha
 
     local textInv = 1 - alpha
-    self._label.Visible = vis
-    self._label.TextTransparency = textInv
-    self._label.TextStrokeTransparency = textInv
-    self._toolLabel.Visible = vis
-    self._toolLabel.TextTransparency = textInv
+    self._label.Visible                  = vis
+    self._label.TextTransparency         = textInv
+    self._label.TextStrokeTransparency   = textInv
+    self._toolLabel.Visible              = vis
+    self._toolLabel.TextTransparency     = textInv
     self._toolLabel.TextStrokeTransparency = textInv
 end
 
@@ -242,20 +256,18 @@ function Box:Hide()
     self._outer.Visible     = false
     self._border.Visible    = false
     self._inner.Visible     = false
+    self._hpBg.Visible      = false
+    self._hpFill.Visible    = false
     self._label.Visible     = false
     self._toolLabel.Visible = false
-    self._healthOutline.Visible = false
-    self._healthBg.Visible      = false
-    self._health.Visible        = false
 end
 
 function Box:Destroy()
     self._outer:Remove()
     self._border:Remove()
     self._inner:Remove()
-    self._healthOutline:Remove()
-    self._healthBg:Remove()
-    self._health:Remove()
+    self._hpBg:Remove()
+    self._hpFill:Remove()
     self._label:Destroy()
     self._toolLabel:Destroy()
 end
