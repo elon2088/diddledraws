@@ -33,7 +33,7 @@ local function startRender()
             local f = fades[i]
             f.elapsed = f.elapsed + dt
             local progress = math.clamp(f.elapsed / FadeDuration, 0, 1)
-            
+
             if progress >= 1 then
                 f.box:Hide()
                 f.box:Destroy()
@@ -41,7 +41,7 @@ local function startRender()
             else
                 local pos, size = projectCorners(f.corners)
                 if pos and size then
-                    f.box:Update(pos, size, f.displayName, f.lastDist, nil, f.lastHealth, f.lastMaxHealth)
+                    f.box:Update(pos, size, f.displayName, f.lastDist, nil, 0, 100)
                     f.box:SetAlpha(1 - progress)
                 else
                     f.box:Hide()
@@ -56,15 +56,13 @@ local function startRender()
     end)
 end
 
-function DrawFade.trigger(box, corners, displayName, lastDist, lastHealth, lastMaxHealth)
+function DrawFade.trigger(box, corners, displayName, lastDist)
     table.insert(fades, {
-        box           = box,
-        corners       = corners,
-        displayName   = displayName,
-        lastDist      = lastDist,
-        lastHealth    = lastHealth,
-        lastMaxHealth = lastMaxHealth,
-        elapsed       = 0,
+        box         = box,
+        corners     = corners,
+        displayName = displayName,
+        lastDist    = lastDist,
+        elapsed     = 0,
     })
     startRender()
 end
