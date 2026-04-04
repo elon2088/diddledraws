@@ -34,7 +34,6 @@ function PlayerHandler.init(ctx)
                 if pos then box:Update(pos, size, p.DisplayName, lastDist, char) else box:Hide() end
             else
                 if #lastCorners > 0 then
-                    -- Send cached health to the fade
                     ctx.DrawFade.trigger(ctx.Box.new(), lastCorners, p.DisplayName, lastDist, lastHealth)
                     table.clear(lastCorners)
                 end
