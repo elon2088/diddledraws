@@ -56,7 +56,10 @@ local function startRender()
     end)
 end
 
-function DrawFade.trigger(box, corners, displayName, lastDist, health, maxHealth)
+function DrawFade.trigger(box, corners, displayName, lastDist, health, maxHealth, startHealth)
+    if startHealth then
+        box._smoothHealth = startHealth
+    end
     table.insert(fades, {
         box         = box,
         corners     = corners,
