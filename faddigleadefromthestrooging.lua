@@ -27,7 +27,6 @@ local function startRender()
             else
                 local pos, size = projectCorners(f.corners)
                 if pos and size then
-                    -- Pass f.savedHealth so the health bar shows up in the fade
                     f.box:Update(pos, size, f.displayName, f.lastDist, f.savedHealth)
                     f.box:SetAlpha(1 - progress)
                 else
