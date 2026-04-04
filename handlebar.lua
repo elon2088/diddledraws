@@ -8,14 +8,12 @@ function PlayerHandler.init(ctx)
 
     local function getWorldCorners(char)
         local c = {}
-        if not char then return c end
         for _, p in ipairs(char:GetChildren()) do
             if p:IsA("BasePart") and p.Name ~= "HumanoidRootPart" then
                 local cf, s = p.CFrame, p.Size * 0.5
-                table.insert(c, cf * Vector3.new(1,1,1)*s); table.insert(c, cf * Vector3.new(-1,1,1)*s)
-                table.insert(c, cf * Vector3.new(1,-1,1)*s); table.insert(c, cf * Vector3.new(-1,-1,1)*s)
-                table.insert(c, cf * Vector3.new(1,1,-1)*s); table.insert(c, cf * Vector3.new(-1,1,-1)*s)
-                table.insert(c, cf * Vector3.new(1,-1,-1)*s); table.insert(c, cf * Vector3.new(-1,-1,-1)*s)
+                for x = -1, 1, 2 do for y = -1, 1, 2 do for z = -1, 1, 2 do
+                    table.insert(c, cf * Vector3.new(x, y, z) * s)
+                end end end
             end
         end
         return c
@@ -25,20 +23,18 @@ function PlayerHandler.init(ctx)
         if p == ctx.LocalPlayer then return end
         local box, lastCorners, lastDist, lastHealth = ctx.Box.new(), {}, nil, 1
         boxes[p] = ctx.RunService.RenderStepped:Connect(function()
-            local char, hum, root = p.Character, nil, nil
-            if char then
-                hum = char:FindFirstChildOfClass("Humanoid")
-                root = char:FindFirstChild("HumanoidRootPart")
-            end
+            local char = p.Character
+            local hum = char and char:FindFirstChildOfClass("Humanoid")
+            local root = char and char:FindFirstChild("HumanoidRootPart")
 
             if char and hum and hum.Health > 0 and root then
-                lastCorners = getWorldCorners(char)
-                lastHealth = hum.Health / hum.MaxHealth
+                lastCorners, lastHealth = getWorldCorners(char), hum.Health / hum.MaxHealth
                 lastDist = localRoot and (localRoot.Position - root.Position).Magnitude
                 local pos, size = ctx.GetBoundingBox(char)
                 if pos then box:Update(pos, size, p.DisplayName, lastDist, char) else box:Hide() end
             else
                 if #lastCorners > 0 then
+                    -- Send cached health to the fade
                     ctx.DrawFade.trigger(ctx.Box.new(), lastCorners, p.DisplayName, lastDist, lastHealth)
                     table.clear(lastCorners)
                 end
@@ -48,7 +44,6 @@ function PlayerHandler.init(ctx)
     end
 
     ctx.Players.PlayerAdded:Connect(Add)
-    ctx.Players.PlayerRemoving:Connect(function(p) if boxes[p] then boxes[p]:Disconnect(); boxes[p]=nil end end)
     for _, p in ipairs(ctx.Players:GetPlayers()) do Add(p) end
     ctx.RunService.RenderStepped:Connect(updateLocalRoot)
 end
