@@ -95,7 +95,7 @@ function PlayerHandler.init(ctx)
                         wasDead        = true
                         fadedThisDeath = true
                         local fadeBox  = Box.new()
-                        DrawFade.trigger(fadeBox, lastCorners, player.DisplayName, lastDist, 0, hum and hum.MaxHealth or 100)
+                        DrawFade.trigger(fadeBox, lastCorners, player.DisplayName, lastDist, 0, hum and hum.MaxHealth or 100, box._smoothHealth)
                     end
                     box:Hide()
                 end
