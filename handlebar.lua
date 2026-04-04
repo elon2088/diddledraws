@@ -51,8 +51,6 @@ function PlayerHandler.init(ctx)
         local box            = Box.new()
         local lastCorners    = {}
         local lastDist       = nil
-        local lastHp         = nil
-        local lastMaxHp      = nil
         local wasDead        = false
         local fadedThisDeath = false
 
@@ -60,8 +58,6 @@ function PlayerHandler.init(ctx)
             box:Hide()
             lastCorners      = {}
             lastDist         = nil
-            lastHp           = nil
-            lastMaxHp        = nil
             wasDead          = false
             fadedThisDeath   = false
         end)
@@ -88,12 +84,9 @@ function PlayerHandler.init(ctx)
                             or nil
                     end
 
-                    lastHp    = hum.Health
-                    lastMaxHp = hum.MaxHealth
-
                     local pos, size = GetBoundingBox(char)
                     if pos then
-                        box:Update(pos, size, player.DisplayName, lastDist, char, lastHp, lastMaxHp)
+                        box:Update(pos, size, player.DisplayName, lastDist, char, hum and hum.Health or 100, hum and hum.MaxHealth or 100)
                     else
                         box:Hide()
                     end
@@ -102,7 +95,7 @@ function PlayerHandler.init(ctx)
                         wasDead        = true
                         fadedThisDeath = true
                         local fadeBox  = Box.new()
-                        DrawFade.trigger(fadeBox, lastCorners, player.DisplayName, lastDist, lastHp, lastMaxHp)
+                        DrawFade.trigger(fadeBox, lastCorners, player.DisplayName, lastDist, 0, hum and hum.MaxHealth or 100)
                     end
                     box:Hide()
                 end
