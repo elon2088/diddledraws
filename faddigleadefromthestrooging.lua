@@ -9,8 +9,7 @@ local function projectCorners(corners)
         local screen, vis = Camera:WorldToViewportPoint(wp)
         if vis then
             anyVis = true
-            minX, minY = math.min(minX, screen.X), math.min(minY, screen.Y)
-            maxX, maxY = math.max(maxX, screen.X), math.max(maxY, screen.Y)
+            minX, minY, maxX, maxY = math.min(minX, screen.X), math.min(minY, screen.Y), math.max(maxX, screen.X), math.max(maxY, screen.Y)
         end
     end
     return anyVis and Vector2.new(minX, minY), anyVis and Vector2.new(maxX - minX, maxY - minY)
@@ -28,6 +27,7 @@ local function startRender()
             else
                 local pos, size = projectCorners(f.corners)
                 if pos and size then
+                    -- Pass f.savedHealth so the health bar shows up in the fade
                     f.box:Update(pos, size, f.displayName, f.lastDist, f.savedHealth)
                     f.box:SetAlpha(1 - progress)
                 else
@@ -40,14 +40,8 @@ local function startRender()
 end
 
 function DrawFade.trigger(box, corners, name, dist, health)
-    table.insert(fades, {box=box, corners=corners, displayName=name, lastDist=dist, savedHealth=health, elapsed=0})
+    table.insert(fades, {box=box, corners=corners, displayName=name, lastDist=dist, savedHealth=health or 0, elapsed=0})
     startRender()
-end
-
-function DrawFade.cleanup()
-    if renderConn then renderConn:Disconnect(); renderConn = nil end
-    for _, f in ipairs(fades) do f.box:Destroy() end
-    table.clear(fades)
 end
 
 return DrawFade
