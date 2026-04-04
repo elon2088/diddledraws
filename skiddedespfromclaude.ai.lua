@@ -12,9 +12,9 @@ local CFG = {
     NameColor    = Color3.fromRGB(255, 255, 255),
     NameSize     = 13,
     DistLerp     = 0.1,
-    HpLerp       = 0.07,
-    HpBarWidth   = 2,
-    HpBarGap     = 2,
+    HpBarWidth   = 3,
+    HpBarGap     = 3,
+    HpLerp       = 0.08,
 }
 
 local function loadCustomFont(url, name)
@@ -62,33 +62,27 @@ local function getEquippedTool(character)
 end
 
 local function hpColor(pct)
-    if pct > 0.75 then
-        local t = (pct - 0.75) / 0.25
+    pct = math.clamp(pct, 0, 1)
+    if pct > 0.6 then
+        local t = (pct - 0.6) / 0.4
         return Color3.fromRGB(
-            math.floor(20  + (50  - 20)  * (1 - t)),
-            math.floor(110 + (140 - 110) * t),
-            20
+            math.floor(180 * (1 - t) + 30 * t),
+            math.floor(120 * t + 80 * (1 - t)),
+            0
         )
-    elseif pct > 0.5 then
-        local t = (pct - 0.5) / 0.25
+    elseif pct > 0.35 then
+        local t = (pct - 0.35) / 0.25
         return Color3.fromRGB(
-            math.floor(160 + (20  - 160) * t),
-            math.floor(110 + (140 - 110) * t),
-            15
-        )
-    elseif pct > 0.25 then
-        local t = (pct - 0.25) / 0.25
-        return Color3.fromRGB(
-            math.floor(170 + (160 - 170) * (1 - t)),
-            math.floor(60  + (110 - 60)  * t),
-            10
+            math.floor(160 * (1 - t) + 180 * t),
+            math.floor(60 + 20 * t),
+            0
         )
     else
-        local t = pct / 0.25
+        local t = pct / 0.35
         return Color3.fromRGB(
-            math.floor(120 + (170 - 120) * t),
-            math.floor(15  + (60  - 15)  * t),
-            10
+            math.floor(120 + 40 * t),
+            math.floor(15 * t),
+            0
         )
     end
 end
@@ -113,23 +107,35 @@ function Box.new()
     self._border.Color     = CFG.BorderColor
     self._border.Thickness = CFG.BorderThick
 
-    self._inner           = Drawing.new("Square")
-    self._inner.Visible   = false
-    self._inner.Filled    = false
-    self._inner.Color     = CFG.OutlineColor
-    self._inner.Thickness = CFG.OutlineThick
+    self._inner            = Drawing.new("Square")
+    self._inner.Visible    = false
+    self._inner.Filled     = false
+    self._inner.Color      = CFG.OutlineColor
+    self._inner.Thickness  = CFG.OutlineThick
 
-    self._hpBg          = Drawing.new("Square")
-    self._hpBg.Visible  = false
-    self._hpBg.Filled   = true
-    self._hpBg.Color    = Color3.fromRGB(0, 0, 0)
-    self._hpBg.Thickness = 1
+    self._hpTrack          = Drawing.new("Square")
+    self._hpTrack.Visible  = false
+    self._hpTrack.Filled   = true
+    self._hpTrack.Color    = Color3.fromRGB(15, 15, 15)
+    self._hpTrack.Thickness = 0
 
-    self._hpFill         = Drawing.new("Square")
-    self._hpFill.Visible = false
-    self._hpFill.Filled  = true
-    self._hpFill.Color   = Color3.fromRGB(30, 140, 20)
-    self._hpFill.Thickness = 1
+    self._hpFill           = Drawing.new("Square")
+    self._hpFill.Visible   = false
+    self._hpFill.Filled    = true
+    self._hpFill.Color     = Color3.fromRGB(30, 120, 30)
+    self._hpFill.Thickness = 0
+
+    self._hpCapTop         = Drawing.new("Circle")
+    self._hpCapTop.Visible = false
+    self._hpCapTop.Filled  = true
+    self._hpCapTop.Thickness = 0
+    self._hpCapTop.NumSides  = 12
+
+    self._hpCapBot         = Drawing.new("Circle")
+    self._hpCapBot.Visible = false
+    self._hpCapBot.Filled  = true
+    self._hpCapBot.Thickness = 0
+    self._hpCapBot.NumSides  = 12
 
     local label                  = Instance.new("TextLabel")
     label.BackgroundTransparency = 1
@@ -181,6 +187,51 @@ function Box:Update(pos, size, displayName, dist, character, health, maxHealth)
     self._inner.Size      = Vector2.new(w - 2, h - 2)
     self._inner.Visible   = true
 
+    local bw  = CFG.HpBarWidth
+    local gap = CFG.HpBarGap
+    local bx  = x - gap - bw - 1
+    local r   = math.floor(bw * 0.5)
+
+    local pct = (health and maxHealth and maxHealth > 0)
+        and math.clamp(health / maxHealth, 0, 1)
+        or 1
+
+    if not self._smoothHp then
+        self._smoothHp = pct
+    else
+        self._smoothHp = self._smoothHp + (pct - self._smoothHp) * CFG.HpLerp
+    end
+
+    local trackH = h + 2
+    local fillH  = math.max(0, math.floor(trackH * self._smoothHp))
+    local fillY  = y - 1 + (trackH - fillH)
+    local barColor = hpColor(self._smoothHp)
+
+    self._hpTrack.Position = Vector2.new(bx, y - 1)
+    self._hpTrack.Size     = Vector2.new(bw, trackH)
+    self._hpTrack.Visible  = true
+
+    if fillH > 0 then
+        self._hpFill.Position = Vector2.new(bx, fillY)
+        self._hpFill.Size     = Vector2.new(bw, fillH)
+        self._hpFill.Color    = barColor
+        self._hpFill.Visible  = true
+
+        self._hpCapTop.Position  = Vector2.new(bx + r, fillY)
+        self._hpCapTop.Radius    = r
+        self._hpCapTop.Color     = barColor
+        self._hpCapTop.Visible   = true
+
+        self._hpCapBot.Position  = Vector2.new(bx + r, fillY + fillH)
+        self._hpCapBot.Radius    = r
+        self._hpCapBot.Color     = barColor
+        self._hpCapBot.Visible   = true
+    else
+        self._hpFill.Visible    = false
+        self._hpCapTop.Visible  = false
+        self._hpCapBot.Visible  = false
+    end
+
     if displayName then
         if dist then
             if not self._smoothDist then
@@ -200,48 +251,27 @@ function Box:Update(pos, size, displayName, dist, character, health, maxHealth)
     self._toolLabel.Text     = "[" .. (tool or "none") .. "]"
     self._toolLabel.Position = UDim2.fromOffset(x + w * 0.5, y + h + 1)
     self._toolLabel.Visible  = true
-
-    if health and maxHealth and maxHealth > 0 then
-        local rawPct = math.clamp(health / maxHealth, 0, 1)
-        if not self._smoothHp then
-            self._smoothHp = rawPct
-        else
-            self._smoothHp = self._smoothHp + (rawPct - self._smoothHp) * CFG.HpLerp
-        end
-
-        local bw   = CFG.HpBarWidth
-        local bx   = x - CFG.HpBarGap - bw - 1
-        local by   = y - 1
-        local bh   = h + 2
-        local fillH = math.max(1, bh * self._smoothHp)
-        local fy    = by + bh - fillH
-
-        self._hpBg.Position  = Vector2.new(bx - 1, by - 1)
-        self._hpBg.Size      = Vector2.new(bw + 2,  bh + 2)
-        self._hpBg.Visible   = true
-
-        self._hpFill.Position = Vector2.new(bx, fy)
-        self._hpFill.Size     = Vector2.new(bw, fillH)
-        self._hpFill.Color    = hpColor(self._smoothHp)
-        self._hpFill.Visible  = true
-    end
 end
 
 function Box:SetAlpha(t)
     local alpha = math.clamp(t, 0, 1)
-    local vis   = alpha > 0.01
+    local vis = alpha > 0.01
 
-    self._outer.Visible       = vis
-    self._outer.Transparency  = alpha
-    self._border.Visible      = vis
+    self._outer.Visible      = vis
+    self._outer.Transparency = alpha
+    self._border.Visible     = vis
     self._border.Transparency = alpha
-    self._inner.Visible       = vis
-    self._inner.Transparency  = alpha
+    self._inner.Visible      = vis
+    self._inner.Transparency = alpha
 
-    self._hpBg.Visible          = vis
-    self._hpBg.Transparency     = alpha
-    self._hpFill.Visible        = vis
-    self._hpFill.Transparency   = alpha
+    self._hpTrack.Visible      = vis
+    self._hpTrack.Transparency = alpha
+    self._hpFill.Visible       = vis and (self._smoothHp or 1) > 0.01
+    self._hpFill.Transparency  = alpha
+    self._hpCapTop.Visible     = self._hpFill.Visible
+    self._hpCapTop.Transparency = alpha
+    self._hpCapBot.Visible     = self._hpFill.Visible
+    self._hpCapBot.Transparency = alpha
 
     local textInv = 1 - alpha
     self._label.Visible                  = vis
@@ -256,8 +286,10 @@ function Box:Hide()
     self._outer.Visible     = false
     self._border.Visible    = false
     self._inner.Visible     = false
-    self._hpBg.Visible      = false
+    self._hpTrack.Visible   = false
     self._hpFill.Visible    = false
+    self._hpCapTop.Visible  = false
+    self._hpCapBot.Visible  = false
     self._label.Visible     = false
     self._toolLabel.Visible = false
 end
@@ -266,8 +298,10 @@ function Box:Destroy()
     self._outer:Remove()
     self._border:Remove()
     self._inner:Remove()
-    self._hpBg:Remove()
+    self._hpTrack:Remove()
     self._hpFill:Remove()
+    self._hpCapTop:Remove()
+    self._hpCapBot:Remove()
     self._label:Destroy()
     self._toolLabel:Destroy()
 end
