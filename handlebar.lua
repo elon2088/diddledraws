@@ -1,50 +1,145 @@
 local PlayerHandler = {}
 
 function PlayerHandler.init(ctx)
-    local boxes, localRoot = {}, nil
-    local function updateLocalRoot() 
-        localRoot = ctx.LocalPlayer.Character and ctx.LocalPlayer.Character:FindFirstChild("HumanoidRootPart") 
+    local LocalPlayer    = ctx.LocalPlayer
+    local Players        = ctx.Players
+    local RunService     = ctx.RunService
+    local Box            = ctx.Box
+    local GetBoundingBox = ctx.GetBoundingBox
+    local DrawFade       = ctx.DrawFade
+
+    local boxes     = {}
+    local localRoot = nil
+
+    local OFFSETS = {
+        Vector3.new( 1,  1,  1), Vector3.new(-1,  1,  1),
+        Vector3.new( 1, -1,  1), Vector3.new(-1, -1,  1),
+        Vector3.new( 1,  1, -1), Vector3.new(-1,  1, -1),
+        Vector3.new( 1, -1, -1), Vector3.new(-1, -1, -1),
+    }
+
+    local function updateLocalRoot()
+        local char = LocalPlayer.Character
+        localRoot  = char and char:FindFirstChild("HumanoidRootPart")
     end
 
-    local function getWorldCorners(char)
-        local c = {}
-        for _, p in ipairs(char:GetChildren()) do
-            if p:IsA("BasePart") and p.Name ~= "HumanoidRootPart" then
-                local cf, s = p.CFrame, p.Size * 0.5
-                for x = -1, 1, 2 do for y = -1, 1, 2 do for z = -1, 1, 2 do
-                    table.insert(c, cf * Vector3.new(x, y, z) * s)
-                end end end
+    local function getWorldCorners(character)
+        local corners = {}
+        for _, part in ipairs(character:GetChildren()) do
+            if part:IsA("BasePart") and part.Name ~= "HumanoidRootPart" then
+                local cf = part.CFrame
+                local hX = part.Size.X * 0.5
+                local hY = part.Size.Y * 0.5
+                local hZ = part.Size.Z * 0.5
+                for _, o in ipairs(OFFSETS) do
+                    table.insert(corners, cf * Vector3.new(o.X * hX, o.Y * hY, o.Z * hZ))
+                end
             end
         end
-        return c
+        return corners
     end
 
-    local function Add(p)
-        if p == ctx.LocalPlayer then return end
-        local box, lastCorners, lastDist, lastHealth = ctx.Box.new(), {}, nil, 1
-        boxes[p] = ctx.RunService.RenderStepped:Connect(function()
-            local char = p.Character
-            local hum = char and char:FindFirstChildOfClass("Humanoid")
-            local root = char and char:FindFirstChild("HumanoidRootPart")
+    updateLocalRoot()
+    LocalPlayer.CharacterAdded:Connect(function()
+        task.defer(updateLocalRoot)
+    end)
 
-            if char and hum and hum.Health > 0 and root then
-                lastCorners, lastHealth = getWorldCorners(char), hum.Health / hum.MaxHealth
-                lastDist = localRoot and (localRoot.Position - root.Position).Magnitude
-                local pos, size = ctx.GetBoundingBox(char)
-                if pos then box:Update(pos, size, p.DisplayName, lastDist, char) else box:Hide() end
-            else
-                if #lastCorners > 0 then
-                    ctx.DrawFade.trigger(ctx.Box.new(), lastCorners, p.DisplayName, lastDist, lastHealth)
-                    table.clear(lastCorners)
-                end
-                box:Hide()
-            end
+    local function Add(player)
+        if player == LocalPlayer then return end
+        if boxes[player] then return end
+
+        local box            = Box.new()
+        local lastCorners    = {}
+        local lastDist       = nil
+        local lastHealth     = nil
+        local lastMaxHealth  = nil
+        local wasDead        = false
+        local fadedThisDeath = false
+
+        local charConn = player.CharacterAdded:Connect(function()
+            box:Hide()
+            lastCorners      = {}
+            lastDist         = nil
+            lastHealth       = nil
+            lastMaxHealth    = nil
+            wasDead          = false
+            fadedThisDeath   = false
         end)
+
+        boxes[player] = {
+            box     = box,
+            cleanup = function() charConn:Disconnect() end,
+            update  = function()
+                local char = player.Character
+                if not char then box:Hide() return end
+
+                local hum    = char:FindFirstChildOfClass("Humanoid")
+                local root   = char:FindFirstChild("HumanoidRootPart")
+                local isDead = not hum or hum.Health <= 0
+
+                if not isDead then
+                    wasDead        = false
+                    fadedThisDeath = false
+
+                    if root then
+                        lastCorners = getWorldCorners(char)
+                        lastDist    = localRoot
+                            and (localRoot.Position - root.Position).Magnitude
+                            or nil
+                        lastHealth    = hum and hum.Health or nil
+                        lastMaxHealth = hum and hum.MaxHealth or nil
+                    end
+
+                    local pos, size = GetBoundingBox(char)
+                    if pos then
+                        box:Update(pos, size, player.DisplayName, lastDist, char, hum and hum.Health, hum and hum.MaxHealth)
+                    else
+                        box:Hide()
+                    end
+                else
+                    if not wasDead and not fadedThisDeath and #lastCorners > 0 then
+                        wasDead        = true
+                        fadedThisDeath = true
+                        local fadeBox  = Box.new()
+                        DrawFade.trigger(fadeBox, lastCorners, player.DisplayName, lastDist, lastHealth, lastMaxHealth)
+                    end
+                    box:Hide()
+                end
+            end
+        }
     end
 
-    ctx.Players.PlayerAdded:Connect(Add)
-    for _, p in ipairs(ctx.Players:GetPlayers()) do Add(p) end
-    ctx.RunService.RenderStepped:Connect(updateLocalRoot)
+    local function Remove(player)
+        local entry = boxes[player]
+        if entry then
+            entry.cleanup()
+            entry.box:Destroy()
+            boxes[player] = nil
+        end
+    end
+
+    for _, p in ipairs(Players:GetPlayers()) do Add(p) end
+    local addedConn   = Players.PlayerAdded:Connect(Add)
+    local removedConn = Players.PlayerRemoving:Connect(Remove)
+
+    local renderConn = RunService.RenderStepped:Connect(function()
+        if not localRoot then updateLocalRoot() end
+        for player, entry in next, boxes do
+            entry.update()
+        end
+    end)
+
+    return function()
+        renderConn:Disconnect()
+        addedConn:Disconnect()
+        removedConn:Disconnect()
+        for player, entry in next, boxes do
+            entry.cleanup()
+            entry.box:Destroy()
+            boxes[player] = nil
+        end
+        DrawFade.cleanup()
+    end
 end
 
 return PlayerHandler
