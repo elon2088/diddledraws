@@ -86,7 +86,7 @@ function PlayerHandler.init(ctx)
 
                     local pos, size = GetBoundingBox(char)
                     if pos then
-                        box:Update(pos, size, player.DisplayName, lastDist, char, hum and hum.Health or 100, hum and hum.MaxHealth or 100)
+                        box:Update(pos, size, player.DisplayName, lastDist, char)
                     else
                         box:Hide()
                     end
@@ -95,7 +95,7 @@ function PlayerHandler.init(ctx)
                         wasDead        = true
                         fadedThisDeath = true
                         local fadeBox  = Box.new()
-                        DrawFade.trigger(fadeBox, lastCorners, player.DisplayName, lastDist, 0, hum and hum.MaxHealth or 100, box._smoothHealth)
+                        DrawFade.trigger(fadeBox, lastCorners, player.DisplayName, lastDist)
                     end
                     box:Hide()
                 end
