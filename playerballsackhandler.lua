@@ -44,8 +44,16 @@ function PlayerHandler.init(ctx)
         local lastH, lastMH = 100, 100
         local wasDead, fadedThisDeath = false, false
 
+        local charConn = player.CharacterAdded:Connect(function()
+            box:Hide()
+            lastCorners, lastDist = {}, nil
+            lastH, lastMH = 100, 100
+            wasDead, fadedThisDeath = false, false
+        end)
+
         boxes[player] = {
             box = box,
+            cleanup = function() charConn:Disconnect() box:Destroy() end,
             update = function()
                 local char = player.Character
                 local hum = char and char:FindFirstChildOfClass("Humanoid")
@@ -66,12 +74,12 @@ function PlayerHandler.init(ctx)
                 else
                     if not wasDead and not fadedThisDeath and #lastCorners > 0 then
                         wasDead, fadedThisDeath = true, true
-                        DrawFade.trigger(Box.new(), lastCorners, player.DisplayName, lastDist, lastH, lastMH)
+                        -- Pass 0 health to ensure the fade bar shows empty
+                        DrawFade.trigger(Box.new(), lastCorners, player.DisplayName, lastDist, 0, lastMH)
                     end
                     box:Hide()
                 end
-            end,
-            cleanup = function() box:Destroy() end
+            end
         }
     end
 
