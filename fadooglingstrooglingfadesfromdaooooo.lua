@@ -41,8 +41,8 @@ local function startRender()
             else
                 local pos, size = projectCorners(f.corners)
                 if pos and size then
-                    -- Faded boxes pass nil for character and health
-                    f.box:Update(pos, size, f.displayName, f.lastDist, nil, nil, nil)
+                    -- Pass stored health and maxHealth to maintain the bar during fade
+                    f.box:Update(pos, size, f.displayName, f.lastDist, nil, f.health, f.maxHealth)
                     f.box:SetAlpha(1 - progress)
                 else
                     f.box:Hide()
@@ -57,12 +57,14 @@ local function startRender()
     end)
 end
 
-function DrawFade.trigger(box, corners, displayName, lastDist)
+function DrawFade.trigger(box, corners, displayName, lastDist, health, maxHealth)
     table.insert(fades, {
         box         = box,
         corners     = corners,
         displayName = displayName,
         lastDist    = lastDist,
+        health      = health,
+        maxHealth   = maxHealth,
         elapsed     = 0,
     })
     startRender()
