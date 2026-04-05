@@ -15,10 +15,8 @@ local function projectCorners(corners)
         local screen, vis = Camera:WorldToViewportPoint(wp)
         if vis then
             anyVis = true
-            if screen.X < minX then minX = screen.X end
-            if screen.Y < minY then minY = screen.Y end
-            if screen.X > maxX then maxX = screen.X end
-            if screen.Y > maxY then maxY = screen.Y end
+            minX, minY = math.min(minX, screen.X), math.min(minY, screen.Y)
+            maxX, maxY = math.max(maxX, screen.X), math.max(maxY, screen.Y)
         end
     end
     if not anyVis then return nil end
@@ -41,7 +39,7 @@ local function startRender()
             else
                 local pos, size = projectCorners(f.corners)
                 if pos and size then
-                    -- Pass stored health and maxHealth to maintain the bar during fade
+                    -- Maintaining the health bar during fade using stored values
                     f.box:Update(pos, size, f.displayName, f.lastDist, nil, f.health, f.maxHealth)
                     f.box:SetAlpha(1 - progress)
                 else
@@ -70,19 +68,9 @@ function DrawFade.trigger(box, corners, displayName, lastDist, health, maxHealth
     startRender()
 end
 
-function DrawFade.setDuration(n)
-    FadeDuration = n
-end
-
 function DrawFade.cleanup()
-    if renderConn then
-        renderConn:Disconnect()
-        renderConn = nil
-    end
-    for _, f in ipairs(fades) do
-        f.box:Hide()
-        f.box:Destroy()
-    end
+    if renderConn then renderConn:Disconnect() renderConn = nil end
+    for _, f in ipairs(fades) do f.box:Hide() f.box:Destroy() end
     table.clear(fades)
 end
 
