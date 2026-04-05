@@ -15,10 +15,10 @@ local function projectCorners(corners)
         local screen, vis = Camera:WorldToViewportPoint(wp)
         if vis then
             anyVis = true
-            minX = math.min(minX, screen.X)
-            minY = math.min(minY, screen.Y)
-            maxX = math.max(maxX, screen.X)
-            maxY = math.max(maxY, screen.Y)
+            if screen.X < minX then minX = screen.X end
+            if screen.Y < minY then minY = screen.Y end
+            if screen.X > maxX then maxX = screen.X end
+            if screen.Y > maxY then maxY = screen.Y end
         end
     end
     if not anyVis then return nil end
@@ -41,7 +41,7 @@ local function startRender()
             else
                 local pos, size = projectCorners(f.corners)
                 if pos and size then
-                    -- Restored passing health data to Update during fade
+                    -- Restored passing health data to Update
                     f.box:Update(pos, size, f.displayName, f.lastDist, nil, f.health, f.maxHealth)
                     f.box:SetAlpha(1 - progress)
                 else
