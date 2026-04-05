@@ -28,11 +28,9 @@ function PlayerHandler.init(ctx)
         for _, part in ipairs(character:GetChildren()) do
             if part:IsA("BasePart") and part.Name ~= "HumanoidRootPart" then
                 local cf = part.CFrame
-                local hX = part.Size.X * 0.5
-                local hY = part.Size.Y * 0.5
-                local hZ = part.Size.Z * 0.5
+                local size = part.Size * 0.5
                 for _, o in ipairs(OFFSETS) do
-                    table.insert(corners, cf * Vector3.new(o.X * hX, o.Y * hY, o.Z * hZ))
+                    table.insert(corners, cf * Vector3.new(o.X * size.X, o.Y * size.Y, o.Z * size.Z))
                 end
             end
         end
