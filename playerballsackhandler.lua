@@ -86,7 +86,7 @@ function PlayerHandler.init(ctx)
 
                     local pos, size = GetBoundingBox(char)
                     if pos then
-                        box:Update(pos, size, player.DisplayName, lastDist, char)
+                        box:Update(pos, size, player.DisplayName, lastDist, char, hum.Health, hum.MaxHealth)
                     else
                         box:Hide()
                     end
