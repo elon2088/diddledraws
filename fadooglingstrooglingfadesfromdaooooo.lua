@@ -30,10 +30,10 @@ local function startRender()
     renderConn = RunService.RenderStepped:Connect(function(dt)
         local i = 1
         while i <= #fades do
-            local f = fades[i]
-            f.elapsed = f.elapsed + dt
+            local f        = fades[i]
+            f.elapsed      = f.elapsed + dt
             local progress = math.clamp(f.elapsed / FadeDuration, 0, 1)
-            
+
             if progress >= 1 then
                 f.box:Hide()
                 f.box:Destroy()
