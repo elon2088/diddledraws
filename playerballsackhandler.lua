@@ -8,15 +8,8 @@ function PlayerHandler.init(ctx)
     local GetBoundingBox = ctx.GetBoundingBox
     local DrawFade       = ctx.DrawFade
 
-    local boxes     = {}
+    local boxes = {}
     local localRoot = nil
-
-    local OFFSETS = {
-        Vector3.new( 1,  1,  1), Vector3.new(-1,  1,  1),
-        Vector3.new( 1, -1,  1), Vector3.new(-1, -1,  1),
-        Vector3.new( 1,  1, -1), Vector3.new(-1,  1, -1),
-        Vector3.new( 1, -1, -1), Vector3.new(-1, -1, -1),
-    }
 
     local function updateLocalRoot()
         local char = LocalPlayer.Character
@@ -29,8 +22,12 @@ function PlayerHandler.init(ctx)
             if part:IsA("BasePart") and part.Name ~= "HumanoidRootPart" then
                 local cf = part.CFrame
                 local size = part.Size * 0.5
-                for _, o in ipairs(OFFSETS) do
-                    table.insert(corners, cf * Vector3.new(o.X * size.X, o.Y * size.Y, o.Z * size.Z))
+                for x = -1, 1, 2 do
+                    for y = -1, 1, 2 do
+                        for z = -1, 1, 2 do
+                            table.insert(corners, cf * Vector3.new(x * size.X, y * size.Y, z * size.Z))
+                        end
+                    end
                 end
             end
         end
@@ -38,104 +35,53 @@ function PlayerHandler.init(ctx)
     end
 
     updateLocalRoot()
-    LocalPlayer.CharacterAdded:Connect(function()
-        task.defer(updateLocalRoot)
-    end)
+    LocalPlayer.CharacterAdded:Connect(function() task.defer(updateLocalRoot) end)
 
     local function Add(player)
         if player == LocalPlayer then return end
-        if boxes[player] then return end
-
-        local box            = Box.new()
-        local lastCorners    = {}
-        local lastDist       = nil
-        local lastHealth     = 100
-        local lastMaxHealth  = 100
-        local wasDead        = false
-        local fadedThisDeath = false
-
-        local charConn = player.CharacterAdded:Connect(function()
-            box:Hide()
-            lastCorners      = {}
-            lastDist         = nil
-            lastHealth       = 100
-            lastMaxHealth    = 100
-            wasDead          = false
-            fadedThisDeath   = false
-        end)
+        local box = Box.new()
+        local lastCorners, lastDist = {}, nil
+        local lastH, lastMH = 100, 100
+        local wasDead, fadedThisDeath = false, false
 
         boxes[player] = {
-            box     = box,
-            cleanup = function() charConn:Disconnect() end,
-            update  = function()
+            box = box,
+            update = function()
                 local char = player.Character
-                if not char then box:Hide() return end
-
-                local hum    = char:FindFirstChildOfClass("Humanoid")
-                local root   = char:FindFirstChild("HumanoidRootPart")
-                local isDead = not hum or hum.Health <= 0
-
-                if not isDead then
-                    wasDead        = false
-                    fadedThisDeath = false
-
-                    if root then
-                        lastCorners   = getWorldCorners(char)
-                        lastDist      = localRoot and (localRoot.Position - root.Position).Magnitude or nil
-                        lastHealth    = hum.Health
-                        lastMaxHealth = hum.MaxHealth
-                    end
-
+                local hum = char and char:FindFirstChildOfClass("Humanoid")
+                local root = char and char:FindFirstChild("HumanoidRootPart")
+                
+                if char and hum and hum.Health > 0 then
+                    wasDead, fadedThisDeath = false, false
+                    lastCorners = getWorldCorners(char)
+                    lastDist = localRoot and (localRoot.Position - root.Position).Magnitude or nil
+                    lastH, lastMH = hum.Health, hum.MaxHealth
+                    
                     local pos, size = GetBoundingBox(char)
                     if pos then
-                        box:Update(pos, size, player.DisplayName, lastDist, char, hum.Health, hum.MaxHealth)
+                        box:Update(pos, size, player.DisplayName, lastDist, char, lastH, lastMH)
                     else
                         box:Hide()
                     end
                 else
                     if not wasDead and not fadedThisDeath and #lastCorners > 0 then
-                        wasDead        = true
-                        fadedThisDeath = true
-                        local fadeBox  = Box.new()
-                        DrawFade.trigger(fadeBox, lastCorners, player.DisplayName, lastDist, lastHealth, lastMaxHealth)
+                        wasDead, fadedThisDeath = true, true
+                        DrawFade.trigger(Box.new(), lastCorners, player.DisplayName, lastDist, lastH, lastMH)
                     end
                     box:Hide()
                 end
-            end
+            end,
+            cleanup = function() box:Destroy() end
         }
     end
 
-    local function Remove(player)
-        local entry = boxes[player]
-        if entry then
-            entry.cleanup()
-            entry.box:Destroy()
-            boxes[player] = nil
-        end
-    end
-
+    Players.PlayerAdded:Connect(Add)
+    Players.PlayerRemoving:Connect(function(p) if boxes[p] then boxes[p].cleanup() boxes[p] = nil end end)
     for _, p in ipairs(Players:GetPlayers()) do Add(p) end
-    local addedConn   = Players.PlayerAdded:Connect(Add)
-    local removedConn = Players.PlayerRemoving:Connect(Remove)
 
-    local renderConn = RunService.RenderStepped:Connect(function()
-        if not localRoot then updateLocalRoot() end
-        for player, entry in next, boxes do
-            entry.update()
-        end
+    RunService.RenderStepped:Connect(function()
+        for _, entry in next, boxes do entry.update() end
     end)
-
-    return function()
-        renderConn:Disconnect()
-        addedConn:Disconnect()
-        removedConn:Disconnect()
-        for player, entry in next, boxes do
-            entry.cleanup()
-            entry.box:Destroy()
-            boxes[player] = nil
-        end
-        DrawFade.cleanup()
-    end
 end
 
 return PlayerHandler
