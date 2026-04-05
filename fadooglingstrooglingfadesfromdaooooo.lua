@@ -41,7 +41,7 @@ local function startRender()
             else
                 local pos, size = projectCorners(f.corners)
                 if pos and size then
-                    -- Faded boxes have no health, so parameters 6 and 7 are nil
+                    -- Faded boxes pass nil for character and health
                     f.box:Update(pos, size, f.displayName, f.lastDist, nil, nil, nil)
                     f.box:SetAlpha(1 - progress)
                 else
