@@ -61,6 +61,21 @@ end
 local Box = {}
 Box.__index = Box
 
+local function makeStrokedFrame(parent, pos, size, strokeColor, strokeThick)
+    local f = Instance.new("Frame")
+    f.BackgroundTransparency = 1
+    f.BorderSizePixel = 0
+    f.Position = pos
+    f.Size = size
+    f.Parent = parent
+    local s = Instance.new("UIStroke")
+    s.Color = strokeColor
+    s.Thickness = strokeThick
+    s.LineJoinMode = Enum.LineJoinMode.Miter
+    s.Parent = f
+    return f, s
+end
+
 function Box.new()
     local self       = setmetatable({}, Box)
     self._smoothDist = nil
@@ -71,26 +86,26 @@ function Box.new()
     self._container.Visible = false
     self._container.Parent = gui
 
-    self._outer = Instance.new("Frame")
-    self._outer.BackgroundColor3 = CFG.OutlineColor
-    self._outer.BorderSizePixel = 0
-    self._outer.Position = UDim2.fromOffset(-1, -1)
-    self._outer.Size = UDim2.new(1, 2, 1, 2)
-    self._outer.Parent = self._container
+    self._outer, self._outerStroke = makeStrokedFrame(
+        self._container,
+        UDim2.fromOffset(-1, -1),
+        UDim2.new(1, 2, 1, 2),
+        CFG.OutlineColor, 1
+    )
 
-    self._border = Instance.new("Frame")
-    self._border.BackgroundColor3 = CFG.BorderColor
-    self._border.BorderSizePixel = 0
-    self._border.Position = UDim2.fromOffset(0, 0)
-    self._border.Size = UDim2.new(1, 0, 1, 0)
-    self._border.Parent = self._container
+    self._border, self._borderStroke = makeStrokedFrame(
+        self._container,
+        UDim2.fromOffset(0, 0),
+        UDim2.new(1, 0, 1, 0),
+        CFG.BorderColor, 1
+    )
 
-    self._inner = Instance.new("Frame")
-    self._inner.BackgroundColor3 = CFG.OutlineColor
-    self._inner.BorderSizePixel = 0
-    self._inner.Position = UDim2.fromOffset(1, 1)
-    self._inner.Size = UDim2.new(1, -2, 1, -2)
-    self._inner.Parent = self._container
+    self._inner, self._innerStroke = makeStrokedFrame(
+        self._container,
+        UDim2.fromOffset(1, 1),
+        UDim2.new(1, -2, 1, -2),
+        CFG.OutlineColor, 1
+    )
 
     self._label = Instance.new("TextLabel")
     self._label.BackgroundTransparency = 1
@@ -151,18 +166,17 @@ end
 
 function Box:SetAlpha(t)
     local alpha = math.clamp(t, 0, 1)
-    local vis = alpha > 0.01
+    self._container.Visible = alpha > 0.01
 
-    self._container.Visible = vis
-    self._outer.BackgroundTransparency = 1 - alpha
-    self._border.BackgroundTransparency = 1 - alpha
-    self._inner.BackgroundTransparency = 1 - alpha
+    local inv = 1 - alpha
+    self._outerStroke.Transparency  = inv
+    self._borderStroke.Transparency = inv
+    self._innerStroke.Transparency  = inv
 
-    local textInv = 1 - alpha
-    self._label.TextTransparency = textInv
-    self._label.TextStrokeTransparency = textInv
-    self._toolLabel.TextTransparency = textInv
-    self._toolLabel.TextStrokeTransparency = textInv
+    self._label.TextTransparency          = inv
+    self._label.TextStrokeTransparency    = inv
+    self._toolLabel.TextTransparency      = inv
+    self._toolLabel.TextStrokeTransparency = inv
 end
 
 function Box:Hide()
